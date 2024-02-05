@@ -1,11 +1,12 @@
+const path = require("path");
+
 const express = require("express");
 const bodyParser = require("body-parser");
-const { v4: uuidv4 } = require("uuid");
-const feedRoutes = require("./routes/feed");
-const authRoutes = require("./routes/auth");
-const path = require("path");
 const mongoose = require("mongoose");
 const multer = require("multer");
+
+const feedRoutes = require("./routes/feed");
+const authRoutes = require("./routes/auth");
 
 const app = express();
 
@@ -14,7 +15,7 @@ const fileStorage = multer.diskStorage({
     cb(null, "images");
   },
   filename: (req, file, cb) => {
-    cb(null, uuidv4() + file.originalname);
+    cb(null, new Date().toISOString() + "-" + file.originalname);
   },
 });
 
@@ -36,6 +37,7 @@ app.use(
   multer({ storage: fileStorage, fileFilter: fileFilter }).single("image")
 );
 app.use("/images", express.static(path.join(__dirname, "images")));
+
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
@@ -62,6 +64,10 @@ mongoose
     "mongodb+srv://zalatdodo:0123162554@cluster0.0fyw2ou.mongodb.net/messages?retryWrites=true&w=majority"
   )
   .then((result) => {
-    app.listen(8080);
+    const server = app.listen(8080);
+    const io = require("./socket").init(server);
+    io.on("connection", (socket) => {
+      console.log("Client connected");
+    });
   })
   .catch((err) => console.log(err));
